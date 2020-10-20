@@ -17,7 +17,7 @@ main' = do
       run prog
 
 someFunc :: IO ()
-someFunc = print $ edsl $ do
+someFunc = putStr $ showProg $ edsl $ do
   "n" $=$ i 0
   while (n "n" $<$ i 100) $ do
     if' (n "n" $%$ i 15 $==$ i 0) $ do
