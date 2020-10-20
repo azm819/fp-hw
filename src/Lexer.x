@@ -54,9 +54,9 @@ def            { tok_ TDef          }
 \<\=           { tok_ TLessEqual    }
 \>\=           { tok_ TGreaterEqual }
 
-$digit+        { tok (TInt . read) }
-\" $notdq+ \"  { tok TStr          }
-$alpha $alnum* { tok TName         }
+$digit+        { tok (TInt . read)        }
+\" $notdq+ \"  { tok (TStr . tail . init) }
+$alpha $alnum* { tok TName                }
 
 {
 data Token = TIndent

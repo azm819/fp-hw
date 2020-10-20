@@ -1,11 +1,16 @@
 module Lib ( someFunc ) where
 
-import Lexer
 import Parser
+import Runner
+import System.Environment
+import System.IO
 
 someFunc :: IO ()
 someFunc = do
-  s <- getContents
-  case parse "filename.py" s of
+  [filename] <- getArgs
+  s <- readFile filename
+  case parse filename s of
     Left err -> putStrLn err
-    Right prog -> print prog
+    Right prog -> do
+      print prog
+      run prog
