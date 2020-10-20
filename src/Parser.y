@@ -8,44 +8,46 @@ import AST
 import Control.Monad.Except
 }
 
-%name parse
+%name parsex
 %tokentype { AToken }
-%error { parseError }
+%monad { Alex }
+%lexer { lexer } { AToken _ TEOF }
+%error { happyError }
 
 %token
-  eof             { AToken TEOF          _ }
-  pass            { AToken TPass         _ }
-  newline         { AToken TNewline      _ }
-  indent          { AToken TIndent       _ }
-  dedent          { AToken TDedent       _ }
-  name            { AToken (TName $$)    _ }
-  int             { AToken (TInt $$)     _ }
-  str             { AToken (TStr $$)     _ }
-  and             { AToken TAnd          _ }
-  or              { AToken TOr           _ }
-  not             { AToken TNot          _ }
-  if              { AToken TIf           _ }
-  else            { AToken TElse         _ }
-  elif            { AToken TElif         _ }
-  while           { AToken TWhile        _ }
-  return          { AToken TReturn       _ }
-  def             { AToken TDef          _ }
-  '('             { AToken TLParen       _ }
-  ')'             { AToken TRParen       _ }
-  ':'             { AToken TColon        _ }
-  ','             { AToken TComma        _ }
-  '+'             { AToken TPlus         _ }
-  '-'             { AToken TMinus        _ }
-  '*'             { AToken TStar         _ }
-  '/'             { AToken TSlash        _ }
-  '<'             { AToken TLess         _ }
-  '>'             { AToken TGreater      _ }
-  '='             { AToken TEqual        _ }
-  '%'             { AToken TPercent      _ }
-  '=='            { AToken TEqEqual      _ }
-  '!='            { AToken TNotEqual     _ }
-  '<='            { AToken TLessEqual    _ }
-  '>='            { AToken TGreaterEqual _ }
+  eof             { AToken _ TEOF          }
+  pass            { AToken _ TPass         }
+  newline         { AToken _ TNewline      }
+  indent          { AToken _ TIndent       }
+  dedent          { AToken _ TDedent       }
+  name            { AToken _ (TName $$)    }
+  int             { AToken _ (TInt $$)     }
+  str             { AToken _ (TStr $$)     }
+  and             { AToken _ TAnd          }
+  or              { AToken _ TOr           }
+  not             { AToken _ TNot          }
+  if              { AToken _ TIf           }
+  else            { AToken _ TElse         }
+  elif            { AToken _ TElif         }
+  while           { AToken _ TWhile        }
+  return          { AToken _ TReturn       }
+  def             { AToken _ TDef          }
+  '('             { AToken _ TLParen       }
+  ')'             { AToken _ TRParen       }
+  ':'             { AToken _ TColon        }
+  ','             { AToken _ TComma        }
+  '+'             { AToken _ TPlus         }
+  '-'             { AToken _ TMinus        }
+  '*'             { AToken _ TStar         }
+  '/'             { AToken _ TSlash        }
+  '<'             { AToken _ TLess         }
+  '>'             { AToken _ TGreater      }
+  '='             { AToken _ TEqual        }
+  '%'             { AToken _ TPercent      }
+  '=='            { AToken _ TEqEqual      }
+  '!='            { AToken _ TNotEqual     }
+  '<='            { AToken _ TLessEqual    }
+  '>='            { AToken _ TGreaterEqual }
 
 %nonassoc '==' '!=' '<' '<=' '>' '>='
 %left or
@@ -55,8 +57,6 @@ import Control.Monad.Except
 %left '*' '/' '%'
 %left NEG
 %%
-
-Program : Statements eof { $1 }
 
 Statements : { [] }
            | Statement Statements { $1 : $2 }
@@ -119,6 +119,15 @@ Def : def name '(' NameList ')' Block { Def $2 $4 $6 }
 
 Assn : name '=' Exp { Assn $1 $3 }
 
+
 {
-parseError ((AToken tok line):_) = error $ "Unexpected " <> (show tok) <> " at line " <> (show line)
+lexer :: (AToken -> Alex a) -> Alex a
+lexer = (alexMonadScanWithPos >>=)
+
+happyError :: AToken -> Alex a
+happyError (AToken p t) =
+  alexErrorWithPos p ("parse error at token " <> show t)
+
+parse :: FilePath -> String -> Either String Statements
+parse = runAlexWithPath parsex
 }

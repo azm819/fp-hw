@@ -6,4 +6,6 @@ import Parser
 someFunc :: IO ()
 someFunc = do
   s <- getContents
-  print $ parse $ tokenize s
+  case parse "filename.py" s of
+    Left err -> putStrLn err
+    Right prog -> print prog

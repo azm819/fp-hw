@@ -1,10 +1,15 @@
 {
-module Lexer (tokenize, Token(..), AToken(..)) where
+module Lexer ( runAlexWithPath
+             , alexMonadScanWithPos
+             , alexErrorWithPos
+             , Alex(..)
+             , Token(..)
+             , AToken(..)) where
 
-import Data.Word
-import Control.Monad.State
-import Codec.Binary.UTF8.String
+import Control.Monad (when)
 }
+
+%wrapper "monadUserState"
 
 $digit  = [0-9]
 $alpha  = [a-zA-Z]
@@ -15,43 +20,43 @@ $noteol = ~$eol
 $notdq  = ~[\"]
 
 @ident = $alpha $alnum*
-
+  
 tokens :-
 
 \# $noteol* ;
 $eol$space*    { startWhite        }
 $space+ ;
 
-pass           { tok TPass         }
-and            { tok TAnd          }
-or             { tok TOr           }
-not            { tok TNot          }
-if             { tok TIf           }
-else           { tok TElse         }
-elif           { tok TElif         }
-while          { tok TWhile        }
-return         { tok TReturn       }
-def            { tok TDef          }
-\(             { tok TLParen       }
-\)             { tok TRParen       }
-\:             { tok TColon        }
-\,             { tok TComma        }
-\+             { tok TPlus         }
-\-             { tok TMinus        }
-\*             { tok TStar         }
-\/             { tok TSlash        }
-\<             { tok TLess         }
-\>             { tok TGreater      }
-\=             { tok TEqual        }
-\%             { tok TPercent      }
-\=\=           { tok TEqEqual      }
-\!\=           { tok TNotEqual     }
-\<\=           { tok TLessEqual    }
-\>\=           { tok TGreaterEqual }
+pass           { tok_ TPass         }
+and            { tok_ TAnd          }
+or             { tok_ TOr           }
+not            { tok_ TNot          }
+if             { tok_ TIf           }
+else           { tok_ TElse         }
+elif           { tok_ TElif         }
+while          { tok_ TWhile        }
+return         { tok_ TReturn       }
+def            { tok_ TDef          }
+\(             { tok_ TLParen       }
+\)             { tok_ TRParen       }
+\:             { tok_ TColon        }
+\,             { tok_ TComma        }
+\+             { tok_ TPlus         }
+\-             { tok_ TMinus        }
+\*             { tok_ TStar         }
+\/             { tok_ TSlash        }
+\<             { tok_ TLess         }
+\>             { tok_ TGreater      }
+\=             { tok_ TEqual        }
+\%             { tok_ TPercent      }
+\=\=           { tok_ TEqEqual      }
+\!\=           { tok_ TNotEqual     }
+\<\=           { tok_ TLessEqual    }
+\>\=           { tok_ TGreaterEqual }
 
-$digit+        { intToken          }
-\" $notdq+ \"  { strToken          }
-$alpha $alnum* { nameToken         }
+$digit+        { tok (TInt . read) }
+\" $notdq+ \"  { tok TStr          }
+$alpha $alnum* { tok TName         }
 
 {
 data Token = TIndent
@@ -89,102 +94,107 @@ data Token = TIndent
            | TEOF
            deriving (Eq, Show)
 
-data AToken = AToken Token Int
+-- Token, annotated with alex position
+data AToken = AToken AlexPosn Token
   deriving (Eq, Show)
 
-data AlexInput = AlexInput Char [Word8] String
-  deriving (Show, Eq)
-alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
-alexGetByte (AlexInput c (b:bs) s) = Just (b,AlexInput c bs s)
-alexGetByte (AlexInput c [] [])    = Nothing
-alexGetByte (AlexInput _ [] (c:s)) =
-  case encode [c] of
-    (b:bs) -> Just (b, AlexInput c bs s)
-    _      -> Nothing
-alexInputPrevChar :: AlexInput -> Char
-alexInputPrevChar (AlexInput c _ _) = c
+data AlexUserState = AlexUserState { filePath :: FilePath
+                                   , indents  :: [Int]
+                                   , pending  :: [AToken]
+                                   }
 
-data AlexState = AlexState { input :: AlexInput
-                           , indents :: [Int]
-                           , pending :: [AToken]
-                           , line :: Int
-                           }
-                           deriving Show
+alexInitUserState :: AlexUserState
+alexInitUserState = AlexUserState "<unknown>" [1] []
 
-initialState :: String -> AlexState
-initialState s = AlexState { input = AlexInput '\n' [] s
-                           , indents = [1]
-                           , pending = []
-                           , line = 1
-                           }
+getFilePath :: Alex FilePath
+getFilePath = filePath <$> alexGetUserState
 
-type Lexer = State AlexState
+setFilePath :: FilePath -> Alex ()
+setFilePath p = do
+  st <- alexGetUserState
+  alexSetUserState $ st { filePath = p }
 
-token :: Token -> Lexer AToken
-token t = do
-  s <- get
-  return $ AToken t (line s)
+getLastIndent :: Alex Int
+getLastIndent = (head . indents) <$> alexGetUserState
 
-evalLexer :: Lexer a -> String -> a
-evalLexer l s = evalState l (initialState s)
+indent :: Int -> Alex ()
+indent i = do
+  st <- alexGetUserState
+  alexSetUserState $ st { indents = i:indents st }
 
-intToken :: Int -> String -> Lexer AToken
-intToken _ s = token $ TInt $ read s
+dedent :: Alex ()
+dedent = do
+  st <- alexGetUserState
+  alexSetUserState $ st { indents = tail (indents st) }
 
-strToken :: Int -> String -> Lexer AToken
-strToken _ s = token $ TStr $ init $ tail s
+consumePending :: Alex (Maybe AToken)
+consumePending = do
+  st <- alexGetUserState
+  case pending st of
+    [] -> return Nothing
+    x:xs -> do
+      alexSetUserState $ st { pending = xs }
+      return $ Just x
 
-nameToken :: Int -> String -> Lexer AToken
-nameToken _ s = token $ TName s
+emit :: AlexPosn -> Token -> Alex ()
+emit posn token = do
+  st <- alexGetUserState
+  alexSetUserState $ st { pending = (pending st) <> [AToken posn token] }
 
-tok :: Token -> Int -> String -> Lexer AToken
-tok t _ _ = token t
+getAlexPosn :: Alex AlexPosn
+getAlexPosn = do
+  (posn, _, _, _) <- alexGetInput
+  return posn
 
-startWhite :: Int -> String -> Lexer AToken
-startWhite n _ = do
-  s' <- get
-  let s = s' { line = line s + 1 }
-  put s
-  let l = line s
-      i@(cur:_) = indents s
-  when (n > cur) $ do
-    put s { indents = n:i, pending = [AToken TIndent l] }
-  when (n < cur) $ do
-    let (pre, post@(top:_)) = span (> n) i
-    if top == n then put s { indents = post, pending = map (const (AToken TDedent l)) pre }
-                else error "Indents don't match"
-  return $ AToken TNewline l
+alexEOF :: Alex AToken
+alexEOF = do
+  posn <- getAlexPosn
+  return $ AToken posn TEOF
 
-readToken :: Lexer AToken
-readToken = do
-  s <- get
-  case pending s of
-    x:xs -> do -- consume pending tokens
-      put s { pending = xs }
-      return x
-    _ -> case alexScan (input s) 0 of
-           AlexEOF -> do
-             ret <- startWhite 1 ""
-             put s { pending = (pending s) <> [AToken TEOF (line s)] }
-             return ret
-           AlexError _ -> error "Lexical error"
-           AlexSkip inp _ -> do
-             put s { input = inp }
-             readToken
-           AlexToken inp n act -> do
-             let (AlexInput _ _ buf) = input s
-             put s { input = inp }
-             act n (take n buf)
+tok :: (String -> Token) -> AlexAction AToken
+tok f = \(posn, _, _, s) i -> return $ AToken posn $ f $ take i s
 
-readTokens :: Lexer [AToken]
-readTokens = do
-  token <- readToken
-  case token of
-    (AToken TEOF _) -> return [token]
-    _ -> do
-      rest <- readTokens
-      return (token:rest)
+tok_ :: Token -> AlexAction AToken
+tok_ = tok . const
 
-tokenize :: String -> [AToken]
-tokenize = evalLexer readTokens
+startWhite :: AlexAction AToken
+startWhite (posn, _, _, _) cur = do
+  prev <- getLastIndent
+  when (cur > prev) $ do
+    indent cur
+    emit posn TIndent
+  when (cur < prev) $ do
+    dedent
+    prev' <- getLastIndent
+    when (prev' /= cur) $ do
+      alexErrorWithPos posn "Invalid dedent"
+    emit posn TDedent
+  return $ AToken posn TNewline
+
+alexMonadScanWithPos :: Alex AToken
+alexMonadScanWithPos = do
+  inp <- alexGetInput
+  sc <- alexGetStartCode
+  p <- consumePending
+  case p of
+    Just t -> return t
+    Nothing -> 
+      case alexScan inp sc of
+        AlexEOF -> alexEOF
+        AlexError (posn, _, _, s) ->
+            alexErrorWithPos posn ("lexical error at character '" <> take 1 s <> "'")
+        AlexSkip  inp' len -> do
+            alexSetInput inp'
+            alexMonadScanWithPos
+        AlexToken inp' len action -> do
+            alexSetInput inp'
+            action (ignorePendingBytes inp) len
+
+alexErrorWithPos :: AlexPosn -> String -> Alex a
+alexErrorWithPos (AlexPn _ l c) msg = do
+  fp <- getFilePath
+  alexError (fp <> ":" <> show l <> ":" <> show c <> ": " <> msg)
+
+runAlexWithPath :: Alex a -> FilePath -> String -> Either String a
+runAlexWithPath a fp input = runAlex input (setFilePath fp >> a)
 }

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b12c17510b595f4840d45d5f3e7db498fb78521fceac3ad93f8b21a2c98dc981
+-- hash: 864b93a1dea494d0fa3f7fed4fb72c995c3c73e916b1fcf4b105fc83e1fa5dba
 
 name:           task-parser
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Lexer
       Lib
       Parser
+      Runner
   other-modules:
       Paths_task_parser
   hs-source-dirs:
@@ -42,6 +43,7 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , ghc
     , mtl
     , utf8-string
@@ -60,6 +62,7 @@ executable task-parser-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , ghc
     , mtl
     , task-parser
@@ -80,6 +83,7 @@ test-suite task-parser-test
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , ghc
     , mtl
     , task-parser
