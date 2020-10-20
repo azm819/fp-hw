@@ -22,7 +22,7 @@ data Exp = Name String
          deriving (Eq, Show)
 
 data Statement = Exp Exp
-               | If Exp Statements (Maybe Statements)
+               | If Exp Statements Statements
                | Return Exp
                | While Exp Statements
                | Def String [String] Statements

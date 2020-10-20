@@ -107,9 +107,9 @@ IfBody : Exp Block Else { If $1 $2 $3 }
 
 If : if IfBody { $2 }
 
-Else : { Nothing }
-     | else Block { Just $2 }
-     | elif IfBody { Just [$2] }
+Else : { [] }
+     | else Block { $2 }
+     | elif IfBody { [$2] }
 
 Return : return Exp { Return $2 }
 
