@@ -27,6 +27,7 @@ dependencies:
 - array
 - utf8-string
 - containers
+- free
 
 library:
   source-dirs: src

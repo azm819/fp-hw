@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 864b93a1dea494d0fa3f7fed4fb72c995c3c73e916b1fcf4b105fc83e1fa5dba
+-- hash: d26513eac67582750b9fa0a52a0d7d03910fea8cdb7693b8fe4c71f23dc4bcb4
 
 name:           task-parser
 version:        0.1.0.0
@@ -44,6 +44,7 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , free
     , ghc
     , mtl
     , utf8-string
@@ -63,6 +64,7 @@ executable task-parser-exe
       array
     , base >=4.7 && <5
     , containers
+    , free
     , ghc
     , mtl
     , task-parser
@@ -84,6 +86,7 @@ test-suite task-parser-test
       array
     , base >=4.7 && <5
     , containers
+    , free
     , ghc
     , mtl
     , task-parser
