@@ -49,10 +49,10 @@ import Control.Monad.Except
   '<='            { AToken _ TLessEqual    }
   '>='            { AToken _ TGreaterEqual }
 
-%nonassoc '==' '!=' '<' '<=' '>' '>='
 %left or
 %left and
 %left not
+%nonassoc '==' '!=' '<' '<=' '>' '>='
 %left '+' '-'
 %left '*' '/' '%'
 %left NEG

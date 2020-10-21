@@ -90,6 +90,10 @@ pyInput [] = Str <$> liftIO getLine
 pyInput [prompt] = liftIO (putStr (show prompt)) >> pyInput []
 pyInput args = pyErr $ "input() expects 0 or 1 arguments, got " <> (show $ length args)
 
+pyAssert :: PyFun
+pyAssert [x] = if toBool x then return None
+                           else pyErr $ "assertion failed"
+
 -- Python builtins
 globals :: Scope
 globals = M.fromList [ ("True", Bool True)
@@ -100,6 +104,7 @@ globals = M.fromList [ ("True", Bool True)
                      , ("bool", Fun pyBool)
                      , ("print", Fun pyPrint)
                      , ("input", Fun pyInput)
+                     , ("assert", Fun pyAssert)
                      ]
 
 -- Short circuit if a block returned a value

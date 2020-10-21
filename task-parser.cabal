@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: baca833c4a5123f95035862a2d1c59056763e187e950f7eb9383b1c9a021026a
+-- hash: e18cd81e28cc7130c29753a4c74fd778fbfcd8cda74be690a2758c9578a89a06
 
 name:           task-parser
 version:        0.1.0.0
@@ -80,11 +80,14 @@ test-suite task-parser-test
       alex
     , happy
   build-depends:
-      array
+      HUnit
+    , QuickCheck
+    , array
     , base >=4.7 && <5
     , containers
     , free
     , mtl
+    , silently
     , task-parser
     , utf8-string
   default-language: Haskell2010

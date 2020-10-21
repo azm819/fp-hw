@@ -62,6 +62,7 @@ edsl (Free (EIf exp body next)) = If exp (edsl body) body' : edsl next'
 edsl (Free (EWhile exp body next)) = While exp (edsl body) : edsl next
 edsl (Free (EDef name args body next)) = Def name args (edsl body) : edsl next
 edsl (Free (EAssn name exp next)) = Assn name exp : edsl next
+edsl (Free (EReturn exp next)) = Return exp : edsl next
 
 pass :: EDSL
 pass = pure ()
@@ -97,9 +98,9 @@ def :: String -> [String] -> EDSL -> EDSL
 def name args body = liftF (EDef name args body ())
 
 infix 2 $=$
-infix 3 $==$, $!=$, $<$, $<=$, $>$, $>=$
-infixl 4 `or'`
-infixl 5 `and'`
+infixl 3 `or'`
+infixl 4 `and'`
+infix 5 $==$, $!=$, $<$, $<=$, $>$, $>=$
 infixl 6 $+$, $-$
 infixl 7 $*$, $/$, $%$
 infixl 8 $$
@@ -165,14 +166,14 @@ instance Show Exp where
     Name name        -> showString "n " . shows name
     IntLiteral i     -> showString "i " . shows i
     StrLiteral s     -> showString "s " . shows s
-    Equal a b        -> binop 3 a b "$==$"
-    NotEqual a b     -> binop 3 a b "$!=$"
-    Less a b         -> binop 3 a b "$<$"
-    Greater a b      -> binop 3 a b "$>$"
-    LessEqual a b    -> binop 3 a b "$<=$"
-    GreaterEqual a b -> binop 3 a b "$>=$"
-    Or a b           -> binop 4 a b "`or'`"
-    And a b          -> binop 5 a b "`and'`"
+    Equal a b        -> binop 5 a b "$==$"
+    NotEqual a b     -> binop 5 a b "$!=$"
+    Less a b         -> binop 5 a b "$<$"
+    Greater a b      -> binop 5 a b "$>$"
+    LessEqual a b    -> binop 5 a b "$<=$"
+    GreaterEqual a b -> binop 5 a b "$>=$"
+    Or a b           -> binop 3 a b "`or'`"
+    And a b          -> binop 4 a b "`and'`"
     Not a            -> showParen (p >= 10) $ showString "not' " . showsPrec 10 a
     Add a b          -> binop 6 a b "$+$"
     Sub a b          -> binop 6 a b "$-$"

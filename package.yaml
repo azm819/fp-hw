@@ -52,6 +52,9 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - task-parser
+    - HUnit
+    - QuickCheck
+    - silently
 
 build-tools:
 - alex

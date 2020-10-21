@@ -12,7 +12,7 @@ import Control.Monad (when)
 %wrapper "monadUserState"
 
 $digit  = [0-9]
-$alpha  = [a-zA-Z]
+$alpha  = [a-zA-Z_]
 $alnum  = [$alpha$digit]
 $space  = [\ \t]
 $eol    = [\n\r]
