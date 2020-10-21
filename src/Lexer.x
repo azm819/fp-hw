@@ -55,7 +55,7 @@ def            { tok_ TDef          }
 \>\=           { tok_ TGreaterEqual }
 
 $digit+        { tok (TInt . read)        }
-\" $notdq+ \"  { tok (TStr . tail . init) }
+\" $notdq* \"  { tok (TStr . tail . init) }
 $alpha $alnum* { tok TName                }
 
 {

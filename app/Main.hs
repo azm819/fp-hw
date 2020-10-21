@@ -1,6 +1,19 @@
 module Main where
 
-import Lib
+import AST
+import Parser
+import Runner
+import System.Environment
+import System.IO
+
+action :: Statements -> [String] -> IO ()
+action prog [] = run prog
+action prog ["-p"] = putStr $ showProg prog
 
 main :: IO ()
-main = someFunc
+main = do
+  (filename:rest) <- getArgs
+  s <- readFile filename
+  case parse filename s of
+    Left err -> putStrLn err
+    Right prog -> action prog rest

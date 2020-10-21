@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d26513eac67582750b9fa0a52a0d7d03910fea8cdb7693b8fe4c71f23dc4bcb4
+-- hash: baca833c4a5123f95035862a2d1c59056763e187e950f7eb9383b1c9a021026a
 
 name:           task-parser
 version:        0.1.0.0
@@ -30,7 +30,6 @@ library
   exposed-modules:
       AST
       Lexer
-      Lib
       Parser
       Runner
   other-modules:
@@ -45,7 +44,6 @@ library
     , base >=4.7 && <5
     , containers
     , free
-    , ghc
     , mtl
     , utf8-string
   default-language: Haskell2010
@@ -65,7 +63,6 @@ executable task-parser-exe
     , base >=4.7 && <5
     , containers
     , free
-    , ghc
     , mtl
     , task-parser
     , utf8-string
@@ -87,7 +84,6 @@ test-suite task-parser-test
     , base >=4.7 && <5
     , containers
     , free
-    , ghc
     , mtl
     , task-parser
     , utf8-string

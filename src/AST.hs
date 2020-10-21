@@ -201,4 +201,4 @@ indented :: Statements -> ShowS
 indented statements s = "do\n" <> (unlines $ map ("  " <> ) (lines (showStatements statements))) <> s
 
 showProg :: Statements -> String
-showProg statements = indented statements ""
+showProg statements = "edsl $ " <> indented statements ""
