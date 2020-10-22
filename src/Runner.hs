@@ -45,6 +45,19 @@ type Runner = StateT Scope IO
 
 type PyFun = [Val] -> Runner Val
 
+data PyErr = VariableNotInScope String
+           | InvalidLiteral String
+           | WrongNumberOfArguments String
+           | AssertionFailed
+           | UnsupportedOperandTypes
+
+pyErrToString :: PyErr -> String
+pyErrToString (VariableNotInScope s) = "variable not in scope: " <> s
+pyErrToString (InvalidLiteral s) = "invalid literal: " <> (show s)
+pyErrToString (WrongNumberOfArguments s) = "wrong number of arguments for function " <> s <> "()"
+pyErrToString AssertionFailed = "assertion failed"
+pyErrToString UnsupportedOperandTypes = "unsupported operand types"
+
 -- Brings a variable into scope
 declare :: String -> Val -> Runner ()
 declare name val = modify (M.insert name val)
@@ -55,30 +68,30 @@ access name = do
   v <- gets $ M.lookup name
   case v of
     Just val -> return val
-    Nothing  -> pyErr $ "variable '" <> "' is not in scope"
+    Nothing  -> pyErr $ VariableNotInScope name
 
 -- Throw an error
-pyErr :: String -> Runner a
-pyErr = liftIO . ioError . userError
+pyErr :: PyErr -> Runner a
+pyErr = liftIO . ioError . userError . pyErrToString
 
 -- Builtin global Python functions and constants:
 
 pyStr :: PyFun
 pyStr [] = return $ Str ""
 pyStr [x] = return $ Str $ show x
-pyStr args = pyErr $ "str() expects 0 or 1 arguments, got " <> (show $ length args)
+pyStr _ = pyErr $ WrongNumberOfArguments "str"
 
 pyInt :: PyFun
 pyInt [] = return $ Int 0
 pyInt [x] = case readMaybe (show x) of
               Just i -> return $ Int i
-              Nothing -> pyErr $ "invalid literal for int(): " <> (show (show x))
-pyInt args = pyErr $ "int() expects 0 or 1 arguments, got " <> (show $ length args)
+              Nothing -> pyErr $ InvalidLiteral (show x)
+pyInt _ = pyErr $ WrongNumberOfArguments "int"
 
 pyBool :: PyFun
 pyBool [] = return $ Bool False
 pyBool [x] = return $ Bool $ toBool x
-pyBool args = pyErr $ "bool() expects 0 or 1 arguments, got " <> (show $ length args)
+pyBool _ = pyErr $ WrongNumberOfArguments "bool"
 
 pyPrint :: PyFun
 pyPrint args = do
@@ -88,11 +101,12 @@ pyPrint args = do
 pyInput :: PyFun
 pyInput [] = Str <$> liftIO getLine
 pyInput [prompt] = liftIO (putStr (show prompt)) >> pyInput []
-pyInput args = pyErr $ "input() expects 0 or 1 arguments, got " <> (show $ length args)
+pyInput _ = pyErr $ WrongNumberOfArguments "input"
 
 pyAssert :: PyFun
 pyAssert [x] = if toBool x then return None
-                           else pyErr $ "assertion failed"
+                           else pyErr AssertionFailed
+pyAssert _ = pyErr $ WrongNumberOfArguments "assert"
 
 -- Python builtins
 globals :: Scope
@@ -136,7 +150,7 @@ evalOrder expA expB order = do
     (Int x, Int y) -> f x y
     (Str x, Str y) -> f x y
     (Bool x, Bool y) -> f x y
-    _ -> pyErr $ (show a) <> " and " <> (show b) <> " cannot be compared"
+    _ -> pyErr $ UnsupportedOperandTypes
   where f x y = return $ Bool $ x `order` y
 
 evalIntOp :: Exp -> Exp -> (Int -> Int -> Int) -> Runner Val
@@ -145,7 +159,7 @@ evalIntOp expA expB op = do
   b <- runExp expB
   case (a, b) of
     (Int x, Int y) -> return $ Int $ op x y
-    _ -> pyErr $ "unsupported operand types"
+    _ -> pyErr $ UnsupportedOperandTypes
 
 -- Evaluate expression
 runExp :: Exp -> Runner Val
@@ -175,7 +189,7 @@ runExp exp =
       case (a, b) of
         (Int x, Int y) -> return $ Int $ x + y
         (Str x, Str y) -> return $ Str $ x <> y
-        _ -> pyErr $ "unsupported operand types"
+        _ -> pyErr $ UnsupportedOperandTypes
     Sub a b -> evalIntOp a b (-)
     Mul a b -> evalIntOp a b (*)
     Div a b -> evalIntOp a b div
@@ -184,13 +198,13 @@ runExp exp =
       x <- runExp a
       case x of
         (Int y) -> return $ Int $ negate y
-        _ -> pyErr $ "unsupported operand types"
+        _ -> pyErr $ UnsupportedOperandTypes
     Call name args -> do
       exprs <- mapM runExp args
       fun <- access name
       case fun of
         Fun f -> f exprs
-        _ -> pyErr $ "attempt to call a non-callable object " <> (show fun)
+        _ -> pyErr $ UnsupportedOperandTypes
 
 
 -- Execute statement block in the Runner monad
@@ -211,7 +225,7 @@ runStatements (s:xs) = do
     Def name argNames a -> do
       declare name $ Fun $ \args -> do
         when (length args /= length argNames) $ do
-           pyErr $ name <> "() expects " <> (show $ length argNames) <> " arguments, got " <> (show $ length args)
+           pyErr $ WrongNumberOfArguments name
         parentScope <- get
         for_ (zip argNames args) $ \(name, value) -> do
           declare name value
