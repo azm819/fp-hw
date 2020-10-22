@@ -163,35 +163,39 @@ name $=$ exp = liftF (EAssn name exp ())
 
 instance Show Exp where
   showsPrec p exp = case exp of
-    Name name        -> showString "n " . shows name
-    IntLiteral i     -> showString "i " . shows i
-    StrLiteral s     -> showString "s " . shows s
-    Equal a b        -> binop 5 a b "$==$"
-    NotEqual a b     -> binop 5 a b "$!=$"
-    Less a b         -> binop 5 a b "$<$"
-    Greater a b      -> binop 5 a b "$>$"
-    LessEqual a b    -> binop 5 a b "$<=$"
-    GreaterEqual a b -> binop 5 a b "$>=$"
-    Or a b           -> binop 3 a b "`or'`"
-    And a b          -> binop 4 a b "`and'`"
-    Not a            -> showParen (p >= 10) $ showString "not' " . showsPrec 10 a
-    Add a b          -> binop 6 a b "$+$"
-    Sub a b          -> binop 6 a b "$-$"
-    Mul a b          -> binop 7 a b "$*$"
-    Div a b          -> binop 7 a b "$/$"
-    Mod a b          -> binop 7 a b "$%$"
-    Neg a            -> showParen (p >= 10) $ showString "neg' " . showsPrec 10 a
-    Call name args   -> showParen (p >= 8) $ shows name . showString " $$ " . shows args
+    Name name        -> showString name
+    IntLiteral i     -> shows i
+    StrLiteral s     -> shows s
+    Equal a b        -> binop 6 a b "=="
+    NotEqual a b     -> binop 6 a b "!="
+    Less a b         -> binop 6 a b "<"
+    Greater a b      -> binop 6 a b ">"
+    LessEqual a b    -> binop 6 a b "<="
+    GreaterEqual a b -> binop 6 a b ">="
+    Or a b           -> binop 3 a b "or"
+    And a b          -> binop 4 a b "and"
+    Not a            -> showParen (p >= 5) $ showString "not " . showsPrec 5 a
+    Add a b          -> binop 7 a b "+"
+    Sub a b          -> binop 7 a b "-"
+    Mul a b          -> binop 8 a b "*"
+    Div a b          -> binop 8 a b "/"
+    Mod a b          -> binop 8 a b "%"
+    Neg a            -> showParen (p >= 9) $ showString "-" . showsPrec 9 a
+    Call name args   -> showParen (p >= 10) $ showString name . shows args
     where binop prec a b symb = showParen (p >= prec) $ showsPrec prec a . showString (" " <> symb <> " ") . showsPrec prec b
+  showList xs = showParen True $ showxs xs
+    where showxs [] = showString ""
+          showxs [y] = shows y
+          showxs (y:ys) = shows y . showString ", " . showxs ys
 
 instance Show Statement where
-  showsPrec _ (Exp exp) = showString "e$ " . shows exp
-  showsPrec _ (If exp body []) = showString "if' (" . shows exp . showString ") $ " . indented body
-  showsPrec _ (If exp body1 body2) = shows (If exp body1 []) . showString "else' $ " . indented body2
-  showsPrec _ (Return exp) = showString "return' $ " . shows exp
-  showsPrec _ (While exp body) = showString "while (" . shows exp . showString ") $ " . indented body
-  showsPrec _ (Def name args body) = showString "def " . shows name . showString " " . shows args . showString " $ " . indented body
-  showsPrec _ (Assn name exp) = shows name . showString " $=$ " . shows exp
+  showsPrec _ (Exp exp) = shows exp
+  showsPrec _ (If exp body []) = showString "if " . shows exp . indented body
+  showsPrec _ (If exp body1 body2) = shows (If exp body1 []) . showString "else" . indented body2
+  showsPrec _ (Return exp) = showString "return " . shows exp
+  showsPrec _ (While exp body) = showString "while " . shows exp . indented body
+  showsPrec _ (Def name args body) = showString "def " . showString name . shows (map Name args) . indented body
+  showsPrec _ (Assn name exp) = showString name . showString " = " . shows exp
 
 showStatements :: Statements -> String
 showStatements [] = "pass"
@@ -199,7 +203,4 @@ showStatements [x] = show x
 showStatements (x:xs) = show x <> "\n" <> showStatements xs
 
 indented :: Statements -> ShowS
-indented statements s = "do\n" <> (unlines $ map ("  " <> ) (lines (showStatements statements))) <> s
-
-showProg :: Statements -> String
-showProg statements = "edsl $ " <> indented statements ""
+indented statements s = ":\n" <> (unlines $ map ("  " <> ) (lines (showStatements statements))) <> s

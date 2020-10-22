@@ -50,58 +50,6 @@ progPy = "def fun1(y, z):\n\
 \    b = y\n\
 \  return a\n"
 
-progEdsl = "edsl $ do\n\
-\  def \"fun1\" [\"y\",\"z\"] $ do\n\
-\    \"x\" $=$ n \"y\" $%$ i 3 $+$ n \"z\" $*$ i 2\n\
-\    if' (n \"x\" $>$ i 5 `and'` n \"y\" $<=$ i 10 `or'` n \"z\" $==$ i 0) $ do\n\
-\      return' $ (n \"x\" $+$ n \"y\") $+$ n \"z\"\n\
-\    else' $ do\n\
-\      if' (n \"z\" $<$ i 3) $ do\n\
-\        return' $ (n \"z\" $*$ n \"z\") $*$ n \"z\"\n\
-\    \n\
-\    return' $ n \"x\"\n\
-\  \n\
-\  def \"fun2\" [\"n\"] $ do\n\
-\    if' (n \"n\" $<=$ i 0) $ do\n\
-\      return' $ i 0\n\
-\    \n\
-\    \"cnt\" $=$ i 0\n\
-\    while (n \"n\" $!=$ i 1) $ do\n\
-\      if' (n \"n\" $%$ i 2 $==$ i 0) $ do\n\
-\        \"n\" $=$ n \"n\" $/$ i 2\n\
-\      else' $ do\n\
-\        \"n\" $=$ i 3 $*$ n \"n\" $+$ i 1\n\
-\      \n\
-\      \"cnt\" $=$ n \"cnt\" $+$ i 1\n\
-\    \n\
-\    return' $ n \"cnt\"\n\
-\  \n\
-\  def \"fun2r\" [\"n\"] $ do\n\
-\    if' (n \"n\" $<=$ i 1) $ do\n\
-\      return' $ i 0\n\
-\    \n\
-\    if' (n \"n\" $%$ i 2 $==$ i 0) $ do\n\
-\      \"n\" $=$ n \"n\" $/$ i 2\n\
-\    else' $ do\n\
-\      \"n\" $=$ i 3 $*$ n \"n\" $+$ i 1\n\
-\    \n\
-\    return' $ i 1 $+$ \"fun2r\" $$ [n \"n\"]\n\
-\  \n\
-\  def \"fun3\" [\"n\"] $ do\n\
-\    if' (n \"n\" $<$ i 0) $ do\n\
-\      return' $ s \"\"\n\
-\    \n\
-\    \"a\" $=$ s \"0\"\n\
-\    \"b\" $=$ s \"1\"\n\
-\    while (n \"n\" $>$ i 0) $ do\n\
-\      \"n\" $=$ n \"n\" $-$ i 1\n\
-\      \"x\" $=$ n \"a\" $+$ n \"b\"\n\
-\      \"y\" $=$ n \"b\" $+$ n \"a\"\n\
-\      \"a\" $=$ n \"x\"\n\
-\      \"b\" $=$ n \"y\"\n\
-\    \n\
-\    return' $ n \"a\"\n"
-
 prog = do
   def "fun1" ["y","z"] $ do
     "x" $=$ n "y" $%$ i 3 $+$ n "z" $*$ i 2
@@ -199,7 +147,7 @@ prop_fun3 = monadicIO $ do
   assert $ res == fun3 n <> "\n"
 
 testParser = TestCase $ parse "" progPy @?= (Right $ edsl prog)
-testPrinter = TestCase $ showProg (edsl prog) @?= progEdsl
+testPrinter = TestCase $ parse "" (showStatements (edsl prog)) @?= (Right $ edsl prog)
 
 main :: IO ()
 main = do

@@ -157,18 +157,23 @@ tok f = \(posn, _, _, s) i -> return $ AToken posn $ f $ take i s
 tok_ :: Token -> AlexAction AToken
 tok_ = tok . const
 
+dedents :: Int -> AlexPosn -> Alex ()
+dedents cur posn = do
+  dedent
+  prev <- getLastIndent
+  when (prev < cur) $ do
+    alexErrorWithPos posn "Invalid dedent"
+  emit posn TDedent
+  when (prev > cur) $ do
+    dedents cur posn
+
 startWhite :: AlexAction AToken
-startWhite (posn, _, _, _) cur = do
+startWhite (posn, _, _, s) cur = do
   prev <- getLastIndent
   when (cur > prev) $ do
     indent cur
     emit posn TIndent
-  when (cur < prev) $ do
-    dedent
-    prev' <- getLastIndent
-    when (prev' /= cur) $ do
-      alexErrorWithPos posn "Invalid dedent"
-    emit posn TDedent
+  when (cur < prev) $ dedents cur posn
   return $ AToken posn TNewline
 
 alexMonadScanWithPos :: Alex AToken

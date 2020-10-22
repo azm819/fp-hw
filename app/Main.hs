@@ -8,7 +8,7 @@ import System.IO
 
 action :: Statements -> [String] -> IO ()
 action prog [] = run prog
-action prog ["-p"] = putStr $ showProg prog
+action prog ["-p"] = putStr $ showStatements prog
 
 main :: IO ()
 main = do
