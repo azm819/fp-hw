@@ -1,13 +1,40 @@
-import Test.HUnit hiding (assert)
-import Test.QuickCheck
-import Test.QuickCheck.Monadic
-import System.IO.Silently
+import Test.HUnit ( (@?=), runTestTT, Test(..) )
+import Test.QuickCheck ( choose, quickCheck, Property )
+import Test.QuickCheck.Monadic ( assert, monadicIO, pick, run )
+import System.IO.Silently ( capture_ )
 import Control.Monad (void)
 
 import AST
-import Parser
+    (Cmd,  ($!=$),
+      ($$),
+      ($%$),
+      ($*$),
+      ($+$),
+      ($-$),
+      ($/$),
+      ($<$),
+      ($<=$),
+      ($=$),
+      ($==$),
+      ($>$),
+      and',
+      def,
+      e,
+      edsl,
+      else',
+      i,
+      if',
+      n,
+      or',
+      return',
+      s,
+      showStatements,
+      while )
+import Parser ( parse )
 import qualified Runner as R
+import Control.Monad.Free ( Free )
 
+progPy :: [Char]
 progPy = "def fun1(y, z):\n\
 \  x = y % 3 + z * 2\n\
 \  if x > 5 and y <= 10 or z == 0:\n\
@@ -50,6 +77,7 @@ progPy = "def fun1(y, z):\n\
 \    b = y\n\
 \  return a\n"
 
+prog :: Free Cmd ()
 prog = do
   def "fun1" ["y","z"] $ do
     "x" $=$ n "y" $%$ i 3 $+$ n "z" $*$ i 2
@@ -146,7 +174,10 @@ prop_fun3 = monadicIO $ do
   res <- run $ capture_ $ R.run $ edsl (prog >> (e$ "print" $$ ["fun3" $$ [i n]]))
   assert $ res == fun3 n <> "\n"
 
+testParser :: Test
 testParser = TestCase $ parse "" progPy @?= (Right $ edsl prog)
+
+testPrinter :: Test
 testPrinter = TestCase $ parse "" (showStatements (edsl prog)) @?= (Right $ edsl prog)
 
 main :: IO ()

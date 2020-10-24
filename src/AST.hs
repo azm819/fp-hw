@@ -3,7 +3,7 @@
 
 module AST where
 
-import Control.Monad.Free
+import Control.Monad.Free ( liftF, Free(..) )
 
 data Exp = Name String
          | IntLiteral Int

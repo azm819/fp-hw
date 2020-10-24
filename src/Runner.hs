@@ -3,14 +3,23 @@
 module Runner (run) where
 
 import AST
+    ( Statements,
+      Statement(Assn, Exp, If, Return, While, Def),
+      Exp(..) )
 import Text.Read (readMaybe)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Control.Monad.State
-import Control.Monad
-import Control.Applicative
-import Data.Foldable
-import System.IO.Error
+    ( MonadState(put, get),
+      MonadIO(liftIO),
+      when,
+      void,
+      StateT(runStateT),
+      gets,
+      modify )
+import Control.Applicative ()
+import Data.Foldable ( for_ )
+import System.IO.Error ()
 
 data Val = Int Int
          | Str String
